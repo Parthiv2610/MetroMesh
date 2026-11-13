@@ -1,0 +1,152 @@
+services:
+      
+  driver-service:
+    build:
+      context: ./DriverService
+      dockerfile: Dockerfile
+    ports:
+      - 8082:8082
+    volumes:
+      - app-logs:/logs  
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/lastmile_driverservice
+      - SPRING_DATA_REDIS_HOST=redis
+      - SPRING_DATA_REDIS_PORT=6379
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - LOGGING_FILE_NAME=/logs/driver-service.log
+    networks:
+      - app-network
+    image:
+      siddhesh1712/driver-service:latest
+
+  location-service:
+    build:
+      context: ./locationService
+      dockerfile: Dockerfile
+    environment:
+      - GRPC_SERVER_HOST=station-service
+      - GRPC_SERVER_PORT=9091
+      - SPRING_DATA_REDIS_HOST=redis
+      - SPRING_DATA_REDIS_PORT=6379
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - LOGGING_FILE_NAME=/logs/location-service.log
+    volumes:
+      - app-logs:/logs  
+    networks:
+      - app-network
+    image:
+      siddhesh1712/location-service:latest
+  
+  matching-service:
+    build:
+      context: ./MatchingService
+      dockerfile: Dockerfile
+    environment:
+      - GRPC_SERVER_HOST=location-service
+      - GRPC_SERVER_PORT=9095
+      - SPRING_DATA_REDIS_HOST=redis
+      - SPRING_DATA_REDIS_PORT=6379
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - LOGGING_FILE_NAME=/logs/matching-service.log
+    volumes:
+      - app-logs:/logs  
+    networks:
+      - app-network
+    image:
+      siddhesh1712/matching-service:latest
+
+  notification-service:
+    build:
+      context: ./NotificationService
+      dockerfile: Dockerfile
+    ports:
+      - 8086:8086
+    environment:
+      - SPRING_DATA_REDIS_HOST=redis
+      - SPRING_DATA_REDIS_PORT=6379
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - LOGGING_FILE_NAME=/logs/notification-service.log
+    volumes:
+      - app-logs:/logs  
+    networks:
+      - app-network
+    image:
+      siddhesh1712/notification-service:latest
+  
+  rider-service:
+    build:
+      context: ./RiderService
+      dockerfile: Dockerfile
+    ports:
+      - 8083:8083
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/lastmile_riderservice
+      - SPRING_DATA_REDIS_HOST=redis
+      - SPRING_DATA_REDIS_PORT=6379
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - LOGGING_FILE_NAME=/logs/rider-service.log
+    volumes:
+      - app-logs:/logs  
+    networks:
+      - app-network
+    image:
+      siddhesh1712/rider-service:latest
+
+  station-service:
+    build:
+      context: ./stationService
+      dockerfile: Dockerfile
+    environment:
+      - SPRING_DATA_REDIS_HOST=redis
+      - SPRING_DATA_REDIS_PORT=6379
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+    networks:
+      - app-network
+    image:
+      siddhesh1712/station-service:latest
+  
+  trip-service:
+    build:
+      context: ./TripService
+      dockerfile: Dockerfile
+    ports:
+      - 8084:8084
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/lastmile_tripservice
+      - SPRING_DATA_REDIS_HOST=redis
+      - SPRING_DATA_REDIS_PORT=6379
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - LOGGING_FILE_NAME=/logs/trip-service.log
+    volumes:
+      - app-logs:/logs  
+    networks:
+      - app-network
+    image:
+      siddhesh1712/trip-service:latest
+
+  user-service:
+    build:
+      context: ./UserService
+      dockerfile: Dockerfile
+    ports:
+      - 8081:8081
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/lastmile_userservice
+      - SPRING_DATA_REDIS_HOST=redis
+      - SPRING_DATA_REDIS_PORT=6379
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - LOGGING_FILE_NAME=/logs/user-service.log
+    volumes:
+      - app-logs:/logs  
+    networks:
+      - app-network
+    image:
+      siddhesh1712/user-service:latest
+
+volumes:
+  postgres_data:
+  app-logs:
+
+networks:
+  app-network:
+    driver: bridge

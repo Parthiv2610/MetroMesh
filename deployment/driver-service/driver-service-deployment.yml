@@ -1,0 +1,57 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: driver-deployment
+  namespace: lastmile
+  labels:
+    app: driver-service
+spec:
+  replicas: 1   
+  selector:
+    matchLabels:
+      app: driver-service
+  template:
+    metadata:
+      labels:
+        app: driver-service
+    spec:
+      containers:
+        - name: driver-service
+          image: siddhesh1712/driver-service:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8082
+
+          
+          env:
+            - name: SPRING_DATASOURCE_DRIVER_CLASS_NAME
+              value: org.postgresql.Driver
+            - name: SPRING_JPA_DATABASE_PLATFORM
+              value: org.hibernate.dialect.PostgreSQLDialect
+            - name: SPRING_JPA_HIBERNATE_DDL_AUTO
+              value: none
+            - name: SPRING_DATASOURCE_URL
+              value: "jdbc:postgresql://postgres-service.lastmile.svc.cluster.local:5432/lastmile_driverservice"
+            - name: SPRING_DATASOURCE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: username
+            - name: SPRING_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: password
+            - name: SPRING_DATA_REDIS_HOST
+              value: redis-service
+            - name: SPRING_DATA_REDIS_PORT
+              value: "6379"
+
+          
+          resources:
+            requests:
+              cpu: "150m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"

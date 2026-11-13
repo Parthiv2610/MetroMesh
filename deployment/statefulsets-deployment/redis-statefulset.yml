@@ -1,0 +1,86 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-service
+  namespace: lastmile
+spec:
+  type: ClusterIP
+  ports:
+    - port: 6379
+      targetPort: 6379
+  selector:
+    app: redis
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis
+  namespace: lastmile
+spec:
+  clusterIP: None
+  ports:
+    - port: 6379
+  selector:
+    app: redis
+
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: redis
+  namespace: lastmile
+spec:
+  serviceName: "redis"   
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redis
+  template:
+    metadata:
+      labels:
+        app: redis
+    spec:
+      containers:
+        - name: redis
+          image: redis:8.2.2-alpine
+          ports:
+            - containerPort: 6379
+          args: ["--appendonly", "yes"]     
+          volumeMounts:
+            - name: redis-data
+              mountPath: /data
+          lifecycle:
+            postStart:
+              exec:
+                command:
+                  - /bin/sh
+                  - -c
+                  - |
+                    echo "Waiting for Redis to start..."
+                    until redis-cli -h 127.0.0.1 -p 6379 ping; do
+                      sleep 2;
+                    done
+
+                    echo "Redis ready. Initializing data..."
+
+                    redis-cli <<EOF
+                    LPUSH station-service:METROSTATION_SILKBOARD:nearby-places Silkboard hsrlayout btmlayout
+                    LPUSH station-service:METROSTATION_ECITY:nearby-places m5 konnapaagrahara neeladrinagar
+                    LPUSH station-service:METROSTATION_MGROAD:nearby-places GoodShepherdAuditorium ChurchStreet Ubcitymall
+                    EOF
+
+                    echo "Initialization complete!"
+      volumes:
+        - name: redis-data
+          persistentVolumeClaim:
+            claimName: redis-data
+  volumeClaimTemplates:
+    - metadata:
+        name: redis-data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 1Gi

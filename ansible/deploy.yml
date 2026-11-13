@@ -1,0 +1,31 @@
+- name: Deploy to Minikube
+  hosts: kubehosts
+  vars:
+    deployments_dir: "../deployment"
+    minikube_driver: "docker"
+    minikube_cpu: "6"
+    minikube_memory: "8gb"
+
+  tasks:
+    - name: Check if Minikube is already running
+      shell: "minikube status --format '{{'{{.Host}}'}}'"
+      register: minikube_status
+      ignore_errors: true
+
+    - name: Start Minikube
+      shell: minikube start --driver={{ minikube_driver }} --cpus={{ minikube_cpu }} --memory={{ minikube_memory }}
+      when: minikube_status.stdout != "Running"
+    
+    - name: enable ingress in minikube
+      shell: minikube addons enable ingress
+
+    - name: enable metrics server for hpa
+      shell: minikube addons enable metrics-server
+
+    - name: wait for ingress to start
+      pause:
+        seconds: 60
+    
+    - name: deploy using kubectl
+      shell: kubectl apply -R -f {{ deployments_dir }}
+

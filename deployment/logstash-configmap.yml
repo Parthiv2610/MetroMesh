@@ -1,0 +1,31 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: logstash-config
+  namespace: lastmile
+data:
+  logstash.yml: |
+    http.host: "0.0.0.0"
+    pipeline.ecs_compatibility: disabled
+
+  pipelines.yml: |
+    - pipeline.id: main
+      path.config: "/usr/share/logstash/pipeline/main.conf"
+
+  main.conf: |
+    input {
+      beats {
+        port => 5044
+      }
+    }
+
+    filter {
+    }
+    
+    output {
+      elasticsearch {
+        hosts => ["elasticsearch-service.lastmile.svc.cluster.local:9200"]
+        index => "k8s-logs-%{+YYYY.MM.dd}"
+      }
+      stdout { codec => rubydebug }
+    }

@@ -1,0 +1,59 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rider-deployment
+  namespace: lastmile
+  labels:
+    app: rider-service
+spec:
+  replicas: 1   
+  selector:
+    matchLabels:
+      app: rider-service
+  template:
+    metadata:
+      labels:
+        app: rider-service
+    spec:
+      containers:
+        - name: rider-service
+          image: siddhesh1712/rider-service:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8083
+
+          
+          env:
+            - name: SPRING_DATASOURCE_URL
+              value: "jdbc:postgresql://postgres-service.lastmile.svc.cluster.local:5432/lastmile_riderservice"
+            - name: SPRING_DATASOURCE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: username
+            - name: SPRING_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: password
+            - name: SPRING_DATASOURCE_DRIVER_CLASS_NAME
+              value: org.postgresql.Driver
+            - name: SPRING_JPA_DATABASE_PLATFORM
+              value: org.hibernate.dialect.PostgreSQLDialect
+            - name: SPRING_JPA_HIBERNATE_DDL_AUTO
+              value: none
+            - name: SPRING_DATA_REDIS_HOST
+              value: redis-service
+            - name: SPRING_DATA_REDIS_PORT
+              value: "6379"
+            - name: SPRING_KAFKA_BOOTSTRAP_SERVERS
+              value: "kafka-service.lastmile.svc.cluster.local:9092"
+            
+          
+          resources:
+            requests:
+              cpu: "150m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
